@@ -1,1 +1,234 @@
-Hello world!
+<!doctype html><html><head>
+	<meta name="viewport" 
+  content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+html,
+body{
+	height:100%;
+}
+body{
+	margin:0;
+	font: 1em verdana;
+}
+a{
+	color: #00f;
+}
+</style>
+</head><body>
+	<h1>Demo Multitouch</h1>
+	<p>di <a href="http://www.jure.it" target="_blank" ontouchend="window.open(this.href,this.target); return false;">Giorgio Beggiora</a></p>
+	<p>Fonte:<br><a href="http://yourinspirationweb.com/" target="_blank" ontouchend="window.open(this.href,this.target); return false;">Far fronte agli eventi... in Javascript - Parte 3</a><br>yourinspirationweb.com</p>
+	<p>Questo script fa comparire dei cerchi gialli in corrispondenza dei punti toccati.</p>
+	<p>Toccare lo schermo nello stesso istante con troppe dita (4 su iOS) potrebbe attivare le gesture di sistema, come quelle per passare da un'app all'altra: in tal caso, provate a toccare lo schermo un dito alla volta, molto lentamente.</p>
+	<p><strong>ID dei punti toccati su schermo</strong></p>
+	<p id="coo"></p>
+	
+	<!-- CODICE PER LA GESTIONE DEI CERCHI -->
+	
+	<style>
+	.circle{
+		position: fixed;
+		width: 120px;
+		height: 120px;
+		margin-left: -60px;
+		margin-top: -60px;
+		border-radius: 120px;
+		border: 4px solid #0000ff;
+		background-color: #ffff00;
+		pointer-events: none;
+	}
+	</style>
+	<script>
+	var circle = function(o){
+		this.id = o.id || undefined;
+		this.x = o.x || undefined;
+		this.y = o.y || undefined;
+		var _this = this;
+		this.render = function(){
+			_this.element = document.createElement('div');
+			_this.element.className = 'circle';
+			_this.origin(_this.x, _this.y);
+			document.body.appendChild(_this.element);
+		};
+		this.destroy = function(){
+			_this.element.parentNode.removeChild(_this.element);
+		};
+		this.origin = function(x, y){
+			_this.x = x;
+			_this.y = y;
+			_this.element.style.left = x + 'px';
+			_this.element.style.top = y + 'px';
+		};
+		this.move = function(x, y){
+			var x2 = x - _this.x;
+			var y2 = y - _this.y;
+			_this.element.style.transform = 'translate3D(' + x2 + 'px, ' + y2 + 'px, 0)';
+		};
+		this.render();
+	};
+	</script>
+	
+	<!-- CODICE PER LA GESTIONE DI UNA LISTA DI OGGETTI -->
+	<!-- Consente di gestire una lista sia come array che come oggetto -->
+	
+	<script>
+	var ObjectArray = function(o){
+		
+		var o = o || {} ;
+		
+		this.object = {};
+		this.array = [];
+		this.length = 0;
+		this.id = o.id || 'id'; // ogni elemento della lista deve avere un campo con questo nome
+		
+		var LIST = this;
+		
+		this.exists = function(key){
+			return !! LIST.object[key];
+		};
+		this.indexOf = function(key){
+			var keyName = LIST.id,
+				arr = LIST.array,
+				i = arr.length
+			;
+			while(i--){
+				var item = arr[i];
+				if('' + item[keyName] === '' + key){
+					return i;
+				}
+			}
+			return -1;
+		};
+		this.delete = function(key){
+			if(LIST.exists(key)){
+				delete LIST.object[key];
+				LIST.array.splice(LIST.indexOf(key),1);
+				LIST.length--;
+			};
+		};
+		this.set = function(key, value){
+			if(LIST.exists(key)){
+				LIST.array[LIST.indexOf(key)] = value;
+			}else{
+				LIST.array.push(value);
+				LIST.length++;
+			};
+			LIST.object[key] = value;
+		};
+		this.get = function(key){
+			return LIST.object[key];
+		};
+		this.item = function(i){
+			return LIST.array[i];
+		};
+		this.clear = function(){
+			LIST.object = {};
+			LIST.array = [];
+			LIST.length = 0;
+		};
+	};
+
+	var touchPoints =  new ObjectArray({id:'identifier'});
+	var circleInstances = new ObjectArray();
+	
+	</script>
+	
+	<!-- CODICE PER RACCOGLIERE TUTTI I PUNTI TOCCATI -->
+	
+	<script>	
+	function touchesListToArray(touchList){
+		return Array.prototype.slice.call(touchList);
+	}
+	
+	function touchesListToObject(touchList){
+		var touchArray = touchesListToArray(touchList);
+		var touchObject = {};
+		touchArray.forEach(function(touch,i){
+			touchObject[touch.identifier] = touch;
+		});
+		return touchObject;
+	}
+	
+	var touchCatcher = function(event){
+		
+		event.preventDefault();
+		
+		touchPoints.clear();
+		var touches = touchesListToArray(event.touches);
+		touches.forEach(function(touch){
+			var id = touch.identifier;
+			touchPoints.set(id, touch);
+		});
+		
+	};
+	
+	var bodyElement = document.body;
+	
+	bodyElement.addEventListener('touchend', touchCatcher);
+	bodyElement.addEventListener('touchmove', touchCatcher);
+	bodyElement.addEventListener('touchstart', touchCatcher);
+	bodyElement.addEventListener('touchcancel', touchCatcher);
+	
+	</script>
+	
+	<!-- CODICE PER MOSTRARE I CERCHI -->
+	<!-- Per ottimizzare le performance creiamo un loop infinito che viene eseguito 60 volte al secondo -->
+	<!-- Aggiorneremo quindi i cerchi ogni 17ms e non ad ogni evento, risparmiando di molto sulle performance -->
+	
+	<script>
+	
+	(function loop(){
+		requestAnimationFrame(loop);
+		
+		if(touchPoints.length || touchPoints.length != circleInstances.length){
+			
+			var touchPoints_object = touchPoints.object;
+			var circleInstances_object = circleInstances.object;
+			
+			var i = circleInstances.length;
+			
+			while(i--){
+				var instance = circleInstances.item(i),
+					id = instance.id
+				;
+				
+				if(!touchPoints.exists(id)){
+					// remove
+					circleInstances.get(id).destroy();
+					circleInstances.delete(id);
+				}else if(circleInstances.exists(id)){
+					// update
+					var touch = touchPoints.get(id);
+					circleInstances.get(id).move(touch.clientX, touch.clientY);
+				}
+			}
+			
+			var i = touchPoints.length;
+			
+			while(i--){
+				var touch = touchPoints.item(i),
+					id = touch.identifier
+				;
+				if(!circleInstances.exists(id)){
+					// add
+					var c = new circle({
+						id: id,
+						x: touch.clientX,
+						y: touch.clientY
+					});
+					circleInstances.set(id, c);
+				}
+			}
+			
+			var log = '';
+			circleInstances.array.forEach(function(instance){
+				log += '<div>' + instance.id + '</div>';
+			});
+			document.getElementById('coo').innerHTML=log;
+			
+		};
+		
+	})();
+	
+	</script>
+</body></html>
