@@ -14,17 +14,21 @@ a{
 	color: #00f;
 }
 </style>
+<meta charset="utf-8">
 </head><body>
 	<h1>Demo Multitouch</h1>
 	<p>di <a href="http://www.jure.it" target="_blank" ontouchend="window.open(this.href,this.target); return false;">Giorgio Beggiora</a></p>
 	<p>Articolo: <a href="http://www.yourinspirationweb.com/2016/05/17/far-fronte-agli-eventi-in-javascript-parte-3/" target="_blank" ontouchend="window.open(this.href,this.target); return false;">http://www.yourinspirationweb.com/2016/05/17/far-fronte-agli-eventi-in-javascript-parte-3/</a></p>
 	<p>GitHub: <a href="https://github.com/giorgiobeggiora/yiw-multitouch-demo/" target="_blank" ontouchend="window.open(this.href,this.target); return false;">https://github.com/giorgiobeggiora/yiw-multitouch-demo/</a>
 	<p>Questo script fa comparire dei cerchi gialli in corrispondenza dei punti toccati.</p>
-	<p>Chrome per Android ritorna sempre "0" come touch event identifier, perci&ograve; se lo state usando per vedere questa demo essa non funzioner&agrave;.</p>
+
+	<p>Chrome per Android come touch event identifier usa un numero "auto increment" che riparte da 0 ogni volta che un tocco termina. Nel caso in cui esistano già dei tocchi con un certo id, verrà assegnato l'id successivo. Safari su iOS invece continua a contare senza mai ripartire da 0.</p>
 	<p>Toccare lo schermo nello stesso istante con troppe dita (4 su iOS) potrebbe attivare le gesture di sistema, come quelle per passare da un'app all'altra: in tal caso, provate a toccare lo schermo un dito alla volta, molto lentamente.</p>
-	<p><strong>ID dei punti toccati su schermo</strong></p>
-	<p id="coo"></p>
-	
+	<div style="position:fixed;top:0;right:0;">
+	<p><strong>Touch id</strong></p>
+	<p id="coo"><em>nessuno</em></p>
+
+	</div>
 	<!-- CODICE PER LA GESTIONE DEI CERCHI -->
 	
 	<style>
@@ -41,10 +45,11 @@ a{
 	}
 	</style>
 	<script>
-	var circle = function(o){
-		this.id = o.id || undefined;
-		this.x = o.x || undefined;
-		this.y = o.y || undefined;
+	var circle = function(){
+		var o = arguments[0] || {};
+		if(typeof o.id !== 'undefined')this.id = o.id;
+		if(typeof o.x !== 'undefined')this.x = o.x;
+		if(typeof o.y !== 'undefined')this.y = o.y;
 		var _this = this;
 		this.render = function(){
 			_this.element = document.createElement('div');
@@ -74,9 +79,9 @@ a{
 	<!-- Consente di gestire una lista sia come array che come oggetto -->
 	
 	<script>
-	var ObjectArray = function(o){
+	var ObjectArray = function(){
 		
-		var o = o || {} ;
+		var o = arguments[0] || {} ;
 		
 		this.object = {};
 		this.array = [];
@@ -86,7 +91,7 @@ a{
 		var LIST = this;
 		
 		this.exists = function(key){
-			return !! LIST.object[key];
+			return typeof LIST.object[key] !== 'undefined';
 		};
 		this.indexOf = function(key){
 			var keyName = LIST.id,
@@ -158,6 +163,7 @@ a{
 		touchPoints.clear();
 		var touches = touchesListToArray(event.touches);
 		touches.forEach(function(touch){
+/*for(t in touch)alert([t,touch[t]]);*/
 			var id = touch.identifier;
 			touchPoints.set(id, touch);
 		});
@@ -193,7 +199,9 @@ a{
 				var instance = circleInstances.item(i),
 					id = instance.id
 				;
-				
+
+				/*alert(instance)
+				alert([typeof id, id, touchPoints.exists(id)])*/
 				if(!touchPoints.exists(id)){
 					// remove
 					circleInstances.get(id).destroy();
@@ -206,11 +214,14 @@ a{
 			}
 			
 			var i = touchPoints.length;
-			
+
+			//alert(['tl...',i]);
 			while(i--){
 				var touch = touchPoints.item(i),
 					id = touch.identifier
 				;
+				//alert(['tp...',touchPoints.array])
+				//alert(['iit...',i,id,touch])
 				if(!circleInstances.exists(id)){
 					// add
 					var c = new circle({
@@ -222,11 +233,15 @@ a{
 				}
 			}
 			
-			var log = '';
+			var log = [];
 			circleInstances.array.forEach(function(instance){
-				log += '<div>' + instance.id + '</div>';
+
+			//for(t in instance)alert([t, instance[t]]);
+				log.push(instance.id);
 			});
-			document.getElementById('coo').innerHTML=log;
+		    var log_content = log.length ? log.join('<br>') : '<em>nessuno</em>';
+		
+			document.getElementById('coo').innerHTML=log_content;
 			
 		};
 		
